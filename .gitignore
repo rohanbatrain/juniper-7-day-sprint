@@ -1,0 +1,15 @@
+# generated: domain XML, net scripts, working files
+artifacts/
+
+# private lab book: a separate, non-public git repository lives here
+lab-book/
+
+# VM images and disks never belong in git
+*.qcow2
+*.img
+*.tgz
+
+# noise
+.DS_Store
+__pycache__/
+*.pyc
