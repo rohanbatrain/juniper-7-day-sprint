@@ -1,0 +1,30 @@
+# Day 1 — Junos fundamentals: two routers, one link.
+#
+# The nodes boot blank except for management. You configure the data interfaces by
+# hand — that is the exercise. Reference answers live in lab/configs/day-01/ and can
+# be wired in later by adding `startup_config = "lab/configs/day-01/r1.conf"` etc.
+#
+# Declared memory: 2 x 5120 MiB + 4096 MiB reserve = 14336 MiB must be available.
+
+[lab]
+name = "day-01-routing"
+description = "Two vJunos-router nodes back to back: CLI, commit/rollback, first ping."
+
+[[nodes]]
+name = "r1"
+kind = "vjunos-router"
+mgmt_ip = "10.99.0.11"
+vcpu = 4
+memory_mb = 5120
+
+[[nodes]]
+name = "r2"
+kind = "vjunos-router"
+mgmt_ip = "10.99.0.12"
+vcpu = 4
+memory_mb = 5120
+
+[[links]]
+name = "r1-r2"
+nodes = ["r1", "r2"]
+subnet = "10.0.12.0/30"
