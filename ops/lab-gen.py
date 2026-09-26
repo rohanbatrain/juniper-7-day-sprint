@@ -36,6 +36,12 @@ IMAGE_GLOBS = {
     "vjunos-switch": "vJunos-switch-*.qcow2",
 }
 
+# what the vendor images expect to see in SMBIOS (from vrnetlab's per-platform launch.py)
+SMBIOS_PRODUCT = {
+    "vjunos-router": "VM-VMX",
+    "vjunos-switch": "VM-VEX",
+}
+
 DOMAIN_XML = """<domain type='kvm'>
   <name>{name}</name>
   <memory unit='MiB'>{memory}</memory>
@@ -313,7 +319,7 @@ def main() -> None:
                 memory=memory,
                 vcpu=vcpu,
                 shares=int(node.get("cpu_shares", 256)),
-                smbios_product=node.get("smbios_product", "VM-VMX"),
+                smbios_product=node.get("smbios_product", SMBIOS_PRODUCT.get(node["kind"], "VM-VMX")),
                 disk=disk,
                 config_img=domain_dir / "config.img",
                 interfaces=iface_xml,
