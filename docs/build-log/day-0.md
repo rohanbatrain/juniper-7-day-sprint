@@ -96,8 +96,23 @@ the toolchain bootstraps over the console and treats the disk as a fast path, no
 | identity | `Chassis EX9214`, `RE-VMX`, `VMX SCB`, `Virtual FPC` |
 | SSH banner | `SSH-2.0-JSSH_4.1` |
 
+### Addendum, same night: three bugs, and the one that stayed open
+
+The blank node did not self-configure — the config-disk mechanism is still an open question
+(the disk is seen by both layers and loaded by neither). But three of the night's failures
+were bugs in my own artifacts, found by reading what the box actually said:
+
+1. a Jinja-style `{# … #}` comment header in the template — Junos does not parse it;
+2. `virsh define` not idempotent against an existing domain;
+3. the generated management address carried **no prefix** — a bare `/32` with no connected
+   route, which is why a "successful" commit still could not be pinged.
+
+With those fixed, the loop is scripted: fresh boot → `ops/lab-bootstrap.py` → a reachable
+node in about 80 seconds from login, with the route table showing
+`10.99.0.0/24 Direct via fxp0.0`. The console stopped being a chore and became a tool.
+
 ## Next
 
 Two routers back to back, then Day 1: interfaces, the `commit confirmed` rollback drill, and
-the first ping across the lab. The console-bootstrap step gets codified into the toolchain
-before the routers boot.
+the first ping across the lab. The console bootstrap is codified (`ops/lab-bootstrap.py`) and
+validated on a blank node; the config-disk mystery is documented with its remaining suspects.
