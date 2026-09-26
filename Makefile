@@ -19,4 +19,5 @@ destroy:       ; ops/lab.sh destroy $(TOPOLOGY)
 net-up:        ; ops/lab.sh net-up $(TOPOLOGY)
 net-down:      ; ops/lab.sh net-down $(TOPOLOGY)
 generate:      ; ops/lab.sh generate $(TOPOLOGY)
+bootstrap:     ; python3 ops/lab-bootstrap.py --topology $(TOPOLOGY) --node $(NODE)
 lint:          ; ops/lab.sh lint
