@@ -252,6 +252,7 @@ def build_config_disk(node: dict, lab: dict, domain_dir: Path) -> None:
         run(["qemu-img", "create", "-f", "raw", str(image), "32M"])
         run(["mkfs.vfat", "-n", "vmm-data", str(image)])
         run(["mcopy", "-o", "-i", str(image), str(tarball), "::"])
+        os.chmod(image, 0o660)
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 
@@ -262,6 +263,7 @@ def ensure_overlay(base: Path, domain_dir: Path, fresh: bool) -> Path:
         overlay.unlink()
     if not overlay.exists():
         run(["qemu-img", "create", "-f", "qcow2", "-F", "qcow2", "-b", str(base), str(overlay)])
+    os.chmod(overlay, 0o660)
     return overlay
 
 

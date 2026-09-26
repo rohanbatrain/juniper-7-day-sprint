@@ -2,8 +2,7 @@
   Base configuration every lab node boots with.
   Rendered by ops/lab-gen.py into the FAT config disk (config/juniper.conf),
   merged with the node's startup_config from the topology, if any.
-
-  Placeholders: {HOSTNAME} {MGMT_IP_IPV4} {MGMT_GW_IP_IPV4}
+  Hostname, management address, gateway and port count are substituted at generate time.
 #}
 system {
     host-name {HOSTNAME};
