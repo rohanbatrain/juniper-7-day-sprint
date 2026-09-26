@@ -67,7 +67,37 @@ defines and starts the domains. The generator — not a human — writes:
 - The switch’s launch recipe was read and encoded: SeaBIOS (not UEFI), SMBIOS `VM-VEX`, and
   the same USB config-disk mechanism as the router.
 
+## First boot: what worked, and the part that did not
+
+The switch image booted. The outer VM (a small Linux host) came up, the nested Junos
+followed, and the chassis introduced itself as an **EX9214** with an **RE-VMX** routing
+engine.
+
+It also came up factory-blank. The bootstrap disk — a 32 MiB FAT volume carrying
+`config/juniper.conf` — was visible to both layers (the outer host saw a 32 MiB SCSI disk;
+the Junos RE attached it as USB `umass0`), and it was loaded by neither. No admin user, no
+management address, `root` with an empty password.
+
+The fix was to drive the same configuration over the console from a script, which brought
+the node fully up: management address, admin user, SSH and NETCONF, sub-millisecond
+reachability from the host, and a live `SSH-2.0-JSSH_4.1` banner.
+
+The lesson is the day's real lesson: **verify the artifact, not the intention.** A config
+disk can be present, attached and readable — and still not be loaded. The next iteration of
+the toolchain bootstraps over the console and treats the disk as a fast path, not the truth.
+
+### Numbers from the boot
+
+| | |
+| --- | --- |
+| domain start → Junos login prompt | ~9 minutes (host carrying two other workloads) |
+| login prompt → fully configured node | ~30 minutes, almost all of it diagnosis |
+| host → RE round trip | 0.42–0.47 ms |
+| identity | `Chassis EX9214`, `RE-VMX`, `VMX SCB`, `Virtual FPC` |
+| SSH banner | `SSH-2.0-JSSH_4.1` |
+
 ## Next
 
-First boot of `lab-r1`/`lab-r2`, then Day 1: interfaces, the `commit confirmed` rollback
-drill, and the first ping across the lab.
+Two routers back to back, then Day 1: interfaces, the `commit confirmed` rollback drill, and
+the first ping across the lab. The console-bootstrap step gets codified into the toolchain
+before the routers boot.
