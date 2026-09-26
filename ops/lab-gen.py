@@ -82,13 +82,11 @@ DOMAIN_XML = """<domain type='kvm'>
     </disk>
     <controller type='usb' model='qemu-xhci'/>
 {interfaces}
-    <serial type='pty'>
+    <serial type='tcp'>
       <log file='{console_log}' append='on'/>
+      <source mode='bind' host='127.0.0.1' service='{console_port}'/>
       <target port='0'/>
     </serial>
-    <console type='pty'>
-      <target type='serial' port='0'/>
-    </console>
     <video>
       <model type='vga'/>
     </video>
@@ -363,7 +361,8 @@ def main() -> None:
                 smbios_product=node.get("smbios_product", SMBIOS_PRODUCT.get(node["kind"], "VM-VMX")),
                 disk=disk,
                 config_img=domain_dir / "config.img",
-                console_log=domain_dir / "console.log",
+                console_log=console_log,
+                console_port=int(node.get("console_port", 4500 + ordinals[name])),
                 interfaces=iface_xml,
             )
             out = artifacts / "domains" / f"{DOMAIN_PREFIX}{name}.xml"

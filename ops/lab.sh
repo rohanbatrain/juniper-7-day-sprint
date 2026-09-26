@@ -104,7 +104,13 @@ cmd_status() {
   done
 }
 
-cmd_console() { "${SYS[@]}" console "lab-${1:?usage: lab.sh console NODE}"; }
+cmd_console() {
+  local n=${1:?usage: lab.sh console NODE} topo port
+  topo=$(topology_arg "${2:-}")
+  command -v nc >/dev/null || { echo "error: nc (netcat) is required for console access" >&2; exit 1; }
+  port=$(topo_query "$topo" "next(4500 + i for i, x in enumerate(nodes, start=1) if x['name'] == '${n}')")
+  exec nc 127.0.0.1 "$port"
+}
 
 cmd_ssh() {
   local n=${1:?usage: lab.sh ssh NODE} topo
