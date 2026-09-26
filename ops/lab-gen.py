@@ -180,6 +180,8 @@ def load_topology(path: Path) -> dict:
     lab.setdefault("mgmt_prefix", 24)
     lab.setdefault("reserve_mb", 4096)
     topo["lab"] = lab
+    topo["nodes"] = nodes
+    topo["links"] = links
     return topo
 
 
