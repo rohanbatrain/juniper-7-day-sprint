@@ -100,15 +100,19 @@ def login(console: Console) -> str:
 
 def write_config(console: Console, config: str) -> None:
     """Write the config line by line. Deliberately boring: the console is a pty and
-    clever encodings have failed here (see lab-book/07-ops-notes.md)."""
+    clever encodings have failed here (see lab-book/07-ops-notes.md). Paced, but read
+    only once at the end — reading after every line spends minutes of wall clock."""
     lines = config.splitlines()
     for line in lines:
         if "'" in line:
             die("a config line contains a single quote; extend this writer's quoting first")
-    console.command(": > /var/tmp/bootstrap.conf", 1.0)
+    console.send(": > /var/tmp/bootstrap.conf")
+    time.sleep(0.5)
     for line in lines:
-        console.command("echo '" + line + "' >> /var/tmp/bootstrap.conf", 0.4)
-    out = console.command("wc -l /var/tmp/bootstrap.conf; head -3 /var/tmp/bootstrap.conf", 3.0)
+        console.send("echo '" + line + "' >> /var/tmp/bootstrap.conf")
+        time.sleep(0.12)
+    time.sleep(1.5)
+    out = console.command("wc -l /var/tmp/bootstrap.conf; head -3 /var/tmp/bootstrap.conf", 4.0)
     print(out.decode(errors="replace")[-400:])
     if b"No such file" in out:
         die("failed to stage the bootstrap file on the node")
