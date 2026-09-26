@@ -248,7 +248,7 @@ def render_init_conf(node: dict, lab: dict, ssh_key_line: str) -> str:
     template = (REPO / "lab" / "nodes" / "init.conf.tmpl").read_text()
     return (
         template.replace("{HOSTNAME}", node["name"])
-        .replace("{MGMT_IP_IPV4}", node["mgmt_ip"])
+        .replace("{MGMT_IP_IPV4}", f"{node['mgmt_ip']}/{lab['mgmt_prefix']}")
         .replace("{MGMT_GW_IPV4}", lab["mgmt_host_ip"])
         .replace("{PORTS}", str(node.get("ports", PORTS_DEFAULT.get(node["kind"], 12))))
         .replace("{SSH_KEY_LINE}", ssh_key_line)
