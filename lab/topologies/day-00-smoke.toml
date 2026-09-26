@@ -1,0 +1,17 @@
+# Day 0 smoke test — one switch node, before the routers.
+#
+# Purpose: validate the whole pipeline (generator → config disk → libvirt → boot →
+# console) on the image we already have. No links; management only.
+#
+# Declared memory: 1 x 5120 MiB + 4096 MiB reserve = 9216 MiB must be available.
+
+[lab]
+name = "day-00-smoke"
+description = "Single vJunos-switch node: generate, define, boot, console."
+
+[[nodes]]
+name = "sw1"
+kind = "vjunos-switch"
+mgmt_ip = "10.99.0.21"
+vcpu = 4
+memory_mb = 5120

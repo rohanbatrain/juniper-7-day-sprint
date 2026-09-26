@@ -42,6 +42,12 @@ SMBIOS_PRODUCT = {
     "vjunos-switch": "VM-VEX",
 }
 
+# data-port count the base config advertises (vrnetlab's per-platform init.conf)
+PORTS_DEFAULT = {
+    "vjunos-router": 12,
+    "vjunos-switch": 56,
+}
+
 DOMAIN_XML = """<domain type='kvm'>
   <name>{name}</name>
   <memory unit='MiB'>{memory}</memory>
@@ -223,6 +229,7 @@ def render_init_conf(node: dict, lab: dict) -> str:
         template.replace("{HOSTNAME}", node["name"])
         .replace("{MGMT_IP_IPV4}", node["mgmt_ip"])
         .replace("{MGMT_GW_IPV4}", lab["mgmt_host_ip"])
+        .replace("{PORTS}", str(node.get("ports", PORTS_DEFAULT.get(node["kind"], 12))))
     )
 
 
