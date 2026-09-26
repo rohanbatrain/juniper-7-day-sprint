@@ -348,6 +348,9 @@ def main() -> None:
             base = find_base_image(node, data_dir)
             disk = ensure_overlay(base, domain_dir, args.fresh)
             build_config_disk(node, lab, domain_dir, ssh_key_line)
+            console_log = domain_dir / "console.log"
+            if not console_log.exists():
+                console_log.touch(mode=0o660)
             iface_xml = "\n".join(
                 IFACE_XML.format(bridge=bridge, mac=mac_for(ordinals[name], idx))
                 for idx, bridge in enumerate(interfaces[name])
