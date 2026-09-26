@@ -99,12 +99,16 @@ def login(console: Console) -> str:
 
 
 def write_config(console: Console, config: str) -> None:
-    payload = base64.b64encode(config.encode()).decode()
-    chunks = [payload[i : i + 900] for i in range(0, len(payload), 900)]
-    console.command(": > /var/tmp/bootstrap.b64", 1.0)
-    for chunk in chunks:
-        console.command(f"echo '{chunk}' >> /var/tmp/bootstrap.b64", 0.8)
-    out = console.command("base64 -d /var/tmp/bootstrap.b64 > /var/tmp/bootstrap.conf; wc -c /var/tmp/bootstrap.conf", 3.0)
+    """Write the config line by line. Deliberately boring: the console is a pty and
+    clever encodings have failed here (see lab-book/07-ops-notes.md)."""
+    lines = config.splitlines()
+    for line in lines:
+        if "'" in line:
+            die("a config line contains a single quote; extend this writer's quoting first")
+    console.command(": > /var/tmp/bootstrap.conf", 1.0)
+    for line in lines:
+        console.command("echo '" + line + "' >> /var/tmp/bootstrap.conf", 0.4)
+    out = console.command("wc -l /var/tmp/bootstrap.conf; head -3 /var/tmp/bootstrap.conf", 3.0)
     print(out.decode(errors="replace")[-400:])
     if b"No such file" in out:
         die("failed to stage the bootstrap file on the node")
