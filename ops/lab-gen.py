@@ -11,6 +11,7 @@ and, under the data directory (default /home/lab), per node:
 
   domains/<name>/disk.qcow2  qcow2 overlay on the base image (persistent)
   domains/<name>/config.img  32 MiB FAT disk with config/juniper.conf (regenerated)
+  domains/<name>/console.log serial console log (appended by libvirt)
 
 The data directory's group must be the user QEMU runs as (see lab-host-setup.sh).
 """
@@ -82,6 +83,7 @@ DOMAIN_XML = """<domain type='kvm'>
     <controller type='usb' model='qemu-xhci'/>
 {interfaces}
     <serial type='pty'>
+      <log file='{console_log}' append='on'/>
       <target port='0'/>
     </serial>
     <console type='pty'>
@@ -225,22 +227,42 @@ def node_interfaces(topo: dict) -> dict[str, list[str]]:
     return interfaces
 
 
-def render_init_conf(node: dict, lab: dict) -> str:
+def load_ssh_key_line(lab: dict) -> tuple[str, str]:
+    """Return (config line, source) for the lab SSH public key, if any.
+
+    Lookup order: $LAB_SSH_PUBKEY, [lab].ssh_pubkey_file, ~/.ssh/lab_ed25519.pub.
+    """
+    candidates: list[Path] = []
+    if os.environ.get("LAB_SSH_PUBKEY"):
+        candidates.append(Path(os.environ["LAB_SSH_PUBKEY"]))
+    if lab.get("ssh_pubkey_file"):
+        candidates.append(Path(lab["ssh_pubkey_file"]))
+    candidates.append(Path.home() / ".ssh" / "lab_ed25519.pub")
+    for path in candidates:
+        if path.is_file():
+            value = path.read_text().strip()
+            if value:
+                return f'ssh-ed25519 "{value}";', str(path)
+    return "", ""
+
+
+def render_init_conf(node: dict, lab: dict, ssh_key_line: str) -> str:
     template = (REPO / "lab" / "nodes" / "init.conf.tmpl").read_text()
     return (
         template.replace("{HOSTNAME}", node["name"])
         .replace("{MGMT_IP_IPV4}", node["mgmt_ip"])
         .replace("{MGMT_GW_IPV4}", lab["mgmt_host_ip"])
         .replace("{PORTS}", str(node.get("ports", PORTS_DEFAULT.get(node["kind"], 12))))
+        .replace("{SSH_KEY_LINE}", ssh_key_line)
     )
 
 
-def build_config_disk(node: dict, lab: dict, domain_dir: Path) -> None:
+def build_config_disk(node: dict, lab: dict, domain_dir: Path, ssh_key_line: str) -> None:
     staging = Path(tempfile.mkdtemp(prefix="lab-cfg-"))
     try:
         conf_dir = staging / "config"
         conf_dir.mkdir()
-        conf = render_init_conf(node, lab)
+        conf = render_init_conf(node, lab, ssh_key_line)
         startup = node.get("startup_config")
         if startup:
             conf += "\n" + (REPO / startup).read_text()
@@ -310,6 +332,11 @@ def main() -> None:
     (artifacts / "domains").mkdir(parents=True, exist_ok=True)
 
     if not args.net_only:
+        ssh_key_line, ssh_key_source = load_ssh_key_line(lab)
+        if ssh_key_line:
+            print(f"admin ssh key: embedded from {ssh_key_source}")
+        else:
+            print("admin ssh key: none found (nodes will accept the lab password only)")
         interfaces = node_interfaces(topo)
         ordinals = {n["name"]: i for i, n in enumerate(topo["nodes"], start=1)}
         for node in topo["nodes"]:
@@ -320,7 +347,7 @@ def main() -> None:
             domain_dir.mkdir(parents=True, exist_ok=True)
             base = find_base_image(node, data_dir)
             disk = ensure_overlay(base, domain_dir, args.fresh)
-            build_config_disk(node, lab, domain_dir)
+            build_config_disk(node, lab, domain_dir, ssh_key_line)
             iface_xml = "\n".join(
                 IFACE_XML.format(bridge=bridge, mac=mac_for(ordinals[name], idx))
                 for idx, bridge in enumerate(interfaces[name])
@@ -333,6 +360,7 @@ def main() -> None:
                 smbios_product=node.get("smbios_product", SMBIOS_PRODUCT.get(node["kind"], "VM-VMX")),
                 disk=disk,
                 config_img=domain_dir / "config.img",
+                console_log=domain_dir / "console.log",
                 interfaces=iface_xml,
             )
             out = artifacts / "domains" / f"{DOMAIN_PREFIX}{name}.xml"
