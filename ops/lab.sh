@@ -49,7 +49,12 @@ cmd_up() {
   local n dom
   for n in $(nodes_of "$topo"); do
     dom="lab-$n"
-    "${SYS[@]}" define "$ROOT/artifacts/domains/$dom.xml" >/dev/null
+    if "${SYS[@]}" dominfo "$dom" >/dev/null 2>&1; then
+      echo "== $dom already defined (make destroy + up to apply structural XML changes)"
+    else
+      "${SYS[@]}" define "$ROOT/artifacts/domains/$dom.xml" >/dev/null
+      echo "== defined $dom"
+    fi
     if [[ $("${SYS[@]}" domstate "$dom" 2>/dev/null || echo undefined) == running ]]; then
       echo "== $dom already running"
     else
