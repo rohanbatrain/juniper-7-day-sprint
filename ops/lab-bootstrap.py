@@ -22,9 +22,17 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+import importlib.util
 
-from lab_gen import DEFAULT_TOPOLOGY, load_ssh_key_line, load_topology, render_init_conf  # noqa: E402
+LAB_GEN_PATH = Path(__file__).resolve().parent / "lab-gen.py"
+_spec = importlib.util.spec_from_file_location("lab_gen", LAB_GEN_PATH)
+lab_gen = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(lab_gen)
+
+DEFAULT_TOPOLOGY = lab_gen.DEFAULT_TOPOLOGY
+load_ssh_key_line = lab_gen.load_ssh_key_line
+load_topology = lab_gen.load_topology
+render_init_conf = lab_gen.render_init_conf
 
 CONSOLE_BASE_PORT = 4500
 LOGIN_MATRIX = [
