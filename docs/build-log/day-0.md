@@ -96,11 +96,16 @@ the toolchain bootstraps over the console and treats the disk as a fast path, no
 | identity | `Chassis EX9214`, `RE-VMX`, `VMX SCB`, `Virtual FPC` |
 | SSH banner | `SSH-2.0-JSSH_4.1` |
 
-### Addendum, same night: three bugs, and the one that stayed open
+### Addendum: bugs, and the one that was solved the next morning
 
-The blank node did not self-configure — the config-disk mechanism is still an open question
-(the disk is seen by both layers and loaded by neither). But three of the night's failures
-were bugs in my own artifacts, found by reading what the box actually said:
+The blank node did not self-configure that night — and the vendor's own `make-config` script,
+pulled from the support page the next day, showed why: **the disk must be 1 MiB** (mine was
+32 MiB) with the tarball carrying `./config/juniper.conf` (mine carried `config/juniper.conf`).
+Rebuilt to the vendor's exact shape, a clean boot self-configured: management address live,
+`SSH-2.0-JSSH_4.1` on port 22, no console step.
+
+Three other failures that night were bugs in my own artifacts, found by reading what the box
+actually said:
 
 1. a Jinja-style `{# … #}` comment header in the template — Junos does not parse it;
 2. `virsh define` not idempotent against an existing domain;
