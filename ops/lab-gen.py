@@ -256,7 +256,13 @@ def render_init_conf(node: dict, lab: dict, ssh_key_line: str) -> str:
 
 
 def build_config_disk(node: dict, lab: dict, domain_dir: Path, ssh_key_line: str) -> None:
+    """Vendor recipe, from Juniper's own make-config.sh (downloaded 2026-09-27):
+    1 MiB raw image, FAT label `vmm-data`, and `vmm-config.tgz` built from *inside* the
+    staging directory so the entries are `./config/juniper.conf`. The earlier vrnetlab-shaped
+    variant (32 MiB, `config/juniper.conf` entries) was attached and visible but the image did
+    not consume it; this is the vendor's own shape."""
     staging = Path(tempfile.mkdtemp(prefix="lab-cfg-"))
+    tarside = Path(tempfile.mkdtemp(prefix="lab-tgz-"))
     try:
         conf_dir = staging / "config"
         conf_dir.mkdir()
@@ -265,16 +271,17 @@ def build_config_disk(node: dict, lab: dict, domain_dir: Path, ssh_key_line: str
         if startup:
             conf += "\n" + (REPO / startup).read_text()
         (conf_dir / "juniper.conf").write_text(conf)
-        tarball = staging / "vmm-config.tgz"
+        tarball = tarside / "vmm-config.tgz"
         with tarfile.open(tarball, "w:gz") as tf:
-            tf.add(conf_dir, arcname="config")
+            tf.add(staging, arcname=".")
         image = domain_dir / "config.img"
-        run(["qemu-img", "create", "-f", "raw", str(image), "32M"])
+        run(["qemu-img", "create", "-f", "raw", str(image), "1M"])
         run(["mkfs.vfat", "-n", "vmm-data", str(image)])
         run(["mcopy", "-o", "-i", str(image), str(tarball), "::"])
         os.chmod(image, 0o660)
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+        shutil.rmtree(tarside, ignore_errors=True)
 
 
 def ensure_overlay(base: Path, domain_dir: Path, fresh: bool) -> Path:
