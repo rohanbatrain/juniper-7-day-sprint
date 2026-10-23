@@ -7,7 +7,7 @@ addresses, and the point-to-point links in data-port order. This script derives 
 - data ports: a node's Nth link (in file order) is ge-0/0/(N-1), as ops/lab-gen.py wires it;
 - link addresses: the spine end is .1 of the /30, the leaf end .2;
 - loopbacks: 10.255.0.<last octet of the management address> (spine1 = 10.255.0.31);
-- underlay: OSPF area 0, point-to-point links, loopbacks passive;
+- underlay: OSPF area 0, point-to-point links with BFD (300 ms x 3), loopbacks passive;
 - overlay (leaves only): iBGP EVPN between the leaf loopbacks, VXLAN VTEP on lo0, one
   stretched VLAN (100, VNI 10100) with an irb host address in a virtual-router per leaf.
 
@@ -70,6 +70,10 @@ def render(node: dict, topo: dict) -> list[str]:
             f"set interfaces {ifname} description {link['name']}",
             f"set interfaces {ifname} unit 0 family inet address {link_address(name, link)}",
             f"set protocols ospf area 0.0.0.0 interface {ifname}.0 interface-type p2p",
+            # a virtual link keeps carrier when the far end goes away; without BFD the only
+            # detector is the 40 s OSPF dead interval (measured on day 6)
+            f"set protocols ospf area 0.0.0.0 interface {ifname}.0 bfd-liveness-detection minimum-interval 300",
+            f"set protocols ospf area 0.0.0.0 interface {ifname}.0 bfd-liveness-detection multiplier 3",
         ]
     lines.append("set policy-options policy-statement ECMP then load-balance per-packet")
     lines.append("set routing-options forwarding-table export ECMP")

@@ -23,6 +23,7 @@ import argparse
 import importlib.util
 import os
 import sys
+import time
 import tomllib
 from pathlib import Path
 
@@ -111,13 +112,22 @@ def main() -> None:
     ap.add_argument("--outdir", type=Path, default=Path("artifacts/fabric"))
     ap.add_argument("--check", action="store_true", help="show the diff, do not commit")
     ap.add_argument("--validate-only", action="store_true")
+    ap.add_argument("--attempts", type=int, default=4)
+    ap.add_argument("--settle", type=int, default=20, help="seconds between attempts")
     args = ap.parse_args()
     topo = tomllib.loads(args.topology.read_text())
     if not args.validate_only:
         for node in topo["nodes"]:
             deploy(node, args.outdir, args.check)
     if not args.check:
-        validate(topo)
+        # a fresh commit needs time to converge: retry the whole assertion set, report the last
+        for attempt in range(1, args.attempts + 1):
+            failures.clear()
+            print(f"--- validation attempt {attempt}")
+            validate(topo)
+            if not failures or attempt == args.attempts:
+                break
+            time.sleep(args.settle)
         print(f"\n{len(failures)} failed" if failures else "\nall assertions passed")
         sys.exit(1 if failures else 0)
 
