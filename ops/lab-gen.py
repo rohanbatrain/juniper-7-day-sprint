@@ -221,7 +221,7 @@ def node_interfaces(topo: dict) -> dict[str, list[str]]:
     interfaces: dict[str, list[str]] = {n["name"]: [lab["mgmt_bridge"]] for n in topo["nodes"]}
     for idx, link in enumerate(topo["links"], start=1):
         for name in link["nodes"]:
-            interfaces[name].append(f"lab-l{idx}")
+            interfaces[name].append(f"{lab.get('link_prefix', 'lab-l')}{idx}")
     return interfaces
 
 
@@ -343,7 +343,9 @@ def main() -> None:
         else:
             print("admin ssh key: none found (nodes will accept the lab password only)")
         interfaces = node_interfaces(topo)
-        ordinals = {n["name"]: i for i, n in enumerate(topo["nodes"], start=1)}
+        # ordinal_base lets two topologies run side by side: distinct MACs and console ports
+        base_ord = int(topo["lab"].get("ordinal_base", 0))
+        ordinals = {n["name"]: base_ord + i for i, n in enumerate(topo["nodes"], start=1)}
         for node in topo["nodes"]:
             name = node["name"]
             memory = int(node.get("memory_mb", 5120))
@@ -376,7 +378,7 @@ def main() -> None:
             out.write_text(xml)
             print(f"node {name}: {vcpu} vCPU / {memory} MiB / base {base.name}")
 
-    link_bridges = [f"lab-l{i}" for i in range(1, len(topo["links"]) + 1)]
+    link_bridges = [f"{lab.get('link_prefix', 'lab-l')}{i}" for i in range(1, len(topo["links"]) + 1)]
     bridges = [lab["mgmt_bridge"], *link_bridges]
     host_addr = f"{lab['mgmt_host_ip']}/{lab['mgmt_prefix']}"
     mgmt_subnet = f"{lab['mgmt_host_ip'].rsplit('.', 1)[0]}.0/{lab['mgmt_prefix']}"
