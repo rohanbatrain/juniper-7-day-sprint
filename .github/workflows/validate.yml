@@ -1,0 +1,43 @@
+# Offline checks for the lab tooling: nothing here needs the lab host or the vendor images.
+name: validate
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python compiles
+        run: python -m py_compile ops/*.py day-07/automation/*.py
+      - name: Shell scripts parse
+        run: for f in ops/*.sh; do bash -n "$f"; done
+      - name: Topologies parse and carry the required keys
+        run: |
+          python - <<'PY'
+          import glob, sys, tomllib
+          bad = 0
+          for path in sorted(glob.glob("lab/topologies/*.toml")):
+              t = tomllib.load(open(path, "rb"))
+              names = [n["name"] for n in t.get("nodes", [])]
+              ips = [n["mgmt_ip"] for n in t.get("nodes", [])]
+              problems = []
+              if "lab" not in t or "name" not in t["lab"]: problems.append("no [lab].name")
+              if len(set(names)) != len(names): problems.append(f"duplicate node names {names}")
+              if len(set(ips)) != len(ips): problems.append(f"duplicate mgmt_ip {ips}")
+              for l in t.get("links", []):
+                  if any(n not in names for n in l["nodes"]): problems.append(f"link {l['name']} names an unknown node")
+              print(f"{'FAIL' if problems else 'ok  '} {path} {'; '.join(problems)}")
+              bad += bool(problems)
+          sys.exit(1 if bad else 0)
+          PY
+      - name: Generated fabric config holds its invariants
+        run: |
+          python day-07/automation/check_gen.py lab/topologies/day-06-datacenter.toml
+          python day-07/automation/gen_fabric.py lab/topologies/day-06-datacenter.toml --outdir /tmp/fabric
+          test "$(cat /tmp/fabric/*.set | grep -vc '^set ')" = 0
