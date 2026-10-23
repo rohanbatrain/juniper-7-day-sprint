@@ -1,0 +1,15 @@
+# Load each node's generated configuration (gen_fabric.py) and commit it.
+# Idempotent: an unchanged node reports ok, not changed.
+#   ansible-playbook -i inventory.yml fabric.yml [--check --diff] [-e src_dir=...]
+- name: Day-06 fabric from generated config
+  hosts: all
+  gather_facts: false
+  vars:
+    src_dir: "{{ playbook_dir }}/../../artifacts/fabric"
+  tasks:
+    - name: Load and commit the generated set file
+      junipernetworks.junos.junos_config:
+        src: "{{ src_dir }}/{{ inventory_hostname }}.set"
+        src_format: set
+        update: merge
+        comment: "day-07 ansible fabric.yml"
