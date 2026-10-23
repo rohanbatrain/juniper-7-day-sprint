@@ -88,11 +88,24 @@ loopbacks`, exit 1. The check catches a bad input before anything touches the fa
 
 ## What still needs hands
 
-`.github/workflows/validate.yml` does not exist yet — the automation README's own badge
-currently points at nothing. `check_gen.py` is ready to be its step; its one shown failure
-(the duplicate-loopback case above) was produced locally, not inside a CI run, because
-adding the workflow file is a new piece of CI and this workspace requires an explicit human
-yes before that goes in. Also unautomated: booting the nodes and standing up the lab
+## CI, and watching it fail once
+
+`.github/workflows/validate.yml` now runs on every push, with no lab needed: Python compiles,
+shell scripts parse, every topology parses with unique node names and management addresses,
+and `check_gen.py` passes on the fabric. It went green on `main`. Then I pushed a throwaway
+branch carrying the same slip as above (leaf2 given leaf1's management address), and the run
+failed where it should:
+
+```text
+FAIL lab/topologies/day-06-datacenter.toml duplicate mgmt_ip ['10.99.0.31', '10.99.0.32', '10.99.0.41', '10.99.0.41']
+```
+
+Branch deleted; `main` stayed green. A check you have never seen fail is a check you are
+trusting on faith.
+
+## What still needs hands
+
+Also unautomated: booting the nodes and standing up the lab
 networks still needs the host (`make up`); the merge load this pipeline uses cannot
 *delete* a statement, so removing a line from the generator doesn't remove it from a box
 (a `replace`/`override` load would, deliberately not used here); and the `nft` isolation
